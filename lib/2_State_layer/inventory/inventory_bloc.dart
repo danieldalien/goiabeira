@@ -51,6 +51,8 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
           final List<ItemCategory> itemCategories =
               results[1] as List<ItemCategory>;
 
+          _stockHandler.createCategoryFromString(itemCategories);
+
           emit(
             state.copyWith(
               appState: AppState.idle,
@@ -182,7 +184,7 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     }
     try {
       print(
-        '3 INVENTORY BLOC. Selling item: ${event.soldItem.stockItem.title} : with Stock_ID ${event.soldItem.stockItem.id} , SELL_ID: ${event.soldItem.idSoldItem}',
+        '3 INVENTORY BLOC. Selling item: ${event.soldItem.stockItem.title} : with Stock_ID ${event.soldItem.stockItem.id} , SELL_ID: ${event.soldItem.id}',
       );
       await Future.wait([
         _sellHandler.createSoldItem(event.soldItem),
@@ -191,7 +193,6 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
           event.soldItem.quantitySold,
         ),
       ]);
-      List<StockItem> items = await _stockHandler.stockItems();
       emit(
         state.copyWith(
           appState: AppState.storingSuccess,

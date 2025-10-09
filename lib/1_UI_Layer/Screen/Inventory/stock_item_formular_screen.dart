@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:goiabeira/0_Core/Config/app_colors.dart';
 import 'package:goiabeira/1_UI_Layer/Widgets/Formular/stock_item_formular.dart';
 import 'package:goiabeira/1_UI_Layer/Widgets/General/height_spacer.dart';
+import 'package:goiabeira/4_Data_Layer/Model/item_category.dart';
 import 'package:goiabeira/4_Data_Layer/Model/stock_item.dart';
 
 class StockItemFormularScreen extends StatelessWidget {
   final StockItem? stockItem;
+  final List<ItemCategory> itemCategories;
   final Function(BuildContext, StockItem) onSubmitted;
   final Function(BuildContext, StockItem) onDelete;
   const StockItemFormularScreen({
     required this.onSubmitted,
     required this.onDelete,
+    required this.itemCategories,
     this.stockItem,
     super.key,
   });
@@ -25,6 +27,7 @@ class StockItemFormularScreen extends StatelessWidget {
             stockItem: stockItem,
             onSubmitted: (stockItem) => onSubmitted(context, stockItem),
             onDelete: (stockItem) => onDelete(context, stockItem),
+            itemsCategory: itemCategories,
           ),
         ],
       ),

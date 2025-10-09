@@ -3,9 +3,13 @@ import 'package:equatable/equatable.dart';
 import 'package:get_it/get_it.dart';
 import 'package:goiabeira/0_Core/Enums/app_screens.dart';
 import 'package:goiabeira/0_Core/Enums/app_state.dart';
+import 'package:goiabeira/0_Core/Enums/time_window.dart';
 import 'package:goiabeira/3_Domain_Layer/Services/analytics_service.dart';
 import 'package:goiabeira/4_Data_Layer/Model/analyze_model.dart';
+import 'package:goiabeira/4_Data_Layer/Model/item_category.dart';
 import 'package:goiabeira/4_Data_Layer/Model/message_model.dart';
+import 'package:goiabeira/4_Data_Layer/Model/quantiy_value_model.dart';
+import 'package:goiabeira/4_Data_Layer/Model/sold_item_summary_model.dart';
 
 part 'analytics_event.dart';
 part 'analytics_state.dart';
@@ -52,11 +56,19 @@ class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
         profitThisMonth: _analyticsService.getProfitForThisMonth(),
       );
 
+      final Map<ItemCategory, QuantiyValueModel> quantityValueByCategory =
+          _analyticsService.getQuantityValueByCategory();
+
+      final List<SoldItemSummaryModel> topSellers = _analyticsService
+          .getTopSellers(timeWindow: TimeWindow.allTime, limit: 5);
+
       emit(
         state.copyWith(
           appState: AppState.idle,
           analyzeModel: analyzeModel,
           stateTriggered: !state.stateTriggered,
+          quantityValueByCategory: quantityValueByCategory,
+          topSellers: topSellers,
         ),
       );
     } catch (e) {

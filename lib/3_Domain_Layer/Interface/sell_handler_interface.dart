@@ -12,6 +12,8 @@ abstract class SellHandlerInterface {
     required this.fileStorageRepository,
   });
 
+  Stream<List<SoldItem>> get soldItemStream;
+
   Future<void> init(dynamic initDatabase);
 
   Future<void> createSoldItem(SoldItem soldItem);

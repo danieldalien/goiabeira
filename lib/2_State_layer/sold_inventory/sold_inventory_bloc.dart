@@ -59,9 +59,13 @@ class SoldInventoryBloc extends Bloc<SoldInventoryEvent, SoldInventoryState> {
   ) async {
     emit(state.copyWith(appState: AppState.loading));
     try {
-      await _sellHandler.deleteSoldItem(event.item);
+      SoldItem? delItem = await _sellHandler.readSoldItem(event.id);
+      if (delItem == null) {
+        throw Exception("Sold item not found");
+      }
+      await _sellHandler.deleteSoldItem(delItem);
       final List<SoldItem> soldItems = List.from(state.soldItems);
-      soldItems.removeWhere((item) => item.idSoldItem == event.item.idSoldItem);
+      soldItems.removeWhere((item) => item.id.toString() == event.id);
       emit(state.copyWith(appState: AppState.idle, soldItems: soldItems));
     } catch (e) {
       emit(
@@ -83,7 +87,7 @@ class SoldInventoryBloc extends Bloc<SoldInventoryEvent, SoldInventoryState> {
 
     await _sellHandler.updateSoldItem(
       event.soldItem,
-      event.soldItem.idSoldItem.toString(),
+      event.soldItem.id.toString(),
     );
     final List<SoldItem> soldItems = await _sellHandler.readAllSoldItems();
     emit(state.copyWith(appState: AppState.idle, soldItems: soldItems));
@@ -102,7 +106,7 @@ class SoldInventoryBloc extends Bloc<SoldInventoryEvent, SoldInventoryState> {
     final List<SoldItem> soldItems = List.from(state.soldItems);
     soldItems.add(event.soldItem);
     print(
-      '2 SELL BLOC. Selling item: ${event.soldItem.stockItem.title} : with Stock_ID ${event.soldItem.stockItem.id} , SELL_ID: ${event.soldItem.idSoldItem}',
+      '2 SELL BLOC. Selling item: ${event.soldItem.stockItem.title} : with Stock_ID ${event.soldItem.stockItem.id} , SELL_ID: ${event.soldItem.id}',
     );
     emit(
       state.copyWith(

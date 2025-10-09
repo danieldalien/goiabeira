@@ -18,10 +18,10 @@ class ResetSoldInventoryState extends SoldInventoryEvent {
 }
 
 class DeleteSoldItem extends SoldInventoryEvent {
-  final SoldItem item;
-  DeleteSoldItem(this.item);
+  final String id;
+  DeleteSoldItem(this.id);
   @override
-  List<Object> get props => [item];
+  List<Object> get props => [id];
 }
 
 class UpdateSoldItem extends SoldInventoryEvent {

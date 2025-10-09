@@ -1,13 +1,21 @@
+import 'dart:async';
+
+import 'package:goiabeira/0_Core/Enums/time_window.dart';
 import 'package:goiabeira/0_Core/Utility/date_time_utility.dart';
 import 'package:goiabeira/3_Domain_Layer/Interface/sell_handler_interface.dart';
 import 'package:goiabeira/3_Domain_Layer/Interface/stock_handler_interface.dart';
 import 'package:goiabeira/3_Domain_Layer/Services/analytics_service.dart';
+import 'package:goiabeira/4_Data_Layer/Model/item_category.dart';
+import 'package:goiabeira/4_Data_Layer/Model/quantiy_value_model.dart';
 import 'package:goiabeira/4_Data_Layer/Model/sold_item.dart';
+import 'package:goiabeira/4_Data_Layer/Model/sold_item_summary_model.dart';
 import 'package:goiabeira/4_Data_Layer/Model/stock_item.dart';
 
 class AnalyticsServiceImpl implements AnalyticsService {
-  late final List<StockItem> stockItems;
-  late final List<SoldItem> soldItems;
+  late List<StockItem> stockItems;
+  late List<SoldItem> soldItems;
+  late final StreamSubscription<List<StockItem>> _stockSubscription;
+  late final StreamSubscription<List<SoldItem>> _soldSubscription;
   bool _isInitialized = false;
 
   @override
@@ -29,6 +37,22 @@ class AnalyticsServiceImpl implements AnalyticsService {
     stockItems = await stockHandlerInterface.readAllStockItems();
     soldItems = await sellHandlerInterface.readAllSoldItems();
     _isInitialized = true;
+    // Listen to stock item changes to keep data up-to-date.
+    _stockSubscription = stockHandlerInterface.stockItemStream.listen((items) {
+      stockItems = items;
+    });
+
+    // Listen to sold item changes to keep data up-to-date.
+    _soldSubscription = sellHandlerInterface.soldItemStream.listen((items) {
+      soldItems = items;
+      print('soldItems updated: ${soldItems.length} items');
+    });
+  }
+
+  @override
+  Future<void> dispose() async {
+    await _stockSubscription.cancel();
+    await _soldSubscription.cancel();
   }
 
   /// Returns the total value of stock (buyPrice * quantity) for all items.
@@ -126,5 +150,119 @@ class AnalyticsServiceImpl implements AnalyticsService {
   @override
   int getTotalStockQuantity() {
     return stockItems.fold(0, (int total, item) => total + item.quantity);
+  }
+
+  /// Returns a map of ItemCategory to QuantiyValueModel with total quantity and value.
+  /// Value is calculated as buyPrice * quantity.
+  @override
+  Map<ItemCategory, QuantiyValueModel> getQuantityValueByCategory() {
+    final Map<ItemCategory, QuantiyValueModel> result = {};
+    for (var item in soldItems) {
+      if (result.containsKey(item.stockItem.category)) {
+        result[item.stockItem.category]!.quantity += item.quantitySold;
+        result[item.stockItem.category]!.value +=
+            item.sellPrice * item.quantitySold;
+      } else {
+        result[item.stockItem.category] = QuantiyValueModel(
+          quantity: item.quantitySold,
+          value: item.sellPrice * item.quantity,
+        );
+      }
+    }
+    return result;
+  }
+
+  @override
+  List<SoldItemSummaryModel> getTopSellers({
+    required TimeWindow timeWindow,
+    int limit = 10,
+  }) {
+    DateTime start;
+    DateTime end = DateTime.now();
+
+    switch (timeWindow) {
+      case TimeWindow.today:
+        start = DateTime(end.year, end.month, end.day);
+        break;
+      case TimeWindow.thisWeek:
+        start = DateTimeUtility.getFirstDayOfWeek();
+        break;
+      case TimeWindow.last7Days:
+        start = end.subtract(Duration(days: 7));
+        break;
+      case TimeWindow.last30Days:
+        start = end.subtract(Duration(days: 30));
+        break;
+      case TimeWindow.thisMonth:
+        start = DateTime(end.year, end.month, 1);
+        break;
+      case TimeWindow.thisYear:
+        start = DateTime(end.year, 1, 1);
+        break;
+      case TimeWindow.allTime:
+        start = DateTime(2000); // Arbitrary early date
+        break;
+      case TimeWindow.custom:
+        // For custom, you might want to pass start and end as parameters.
+        // Here we default to the last 30 days for demonstration.
+        start = end.subtract(Duration(days: 30));
+        break;
+    }
+
+    // Filter sold items within the specified timeframe
+    final filteredItems = soldItems.where(
+      (item) => !item.sellDate.isBefore(start) && !item.sellDate.isAfter(end),
+    );
+
+    // Aggregate data by StockItem ID
+    final Map<int, SoldItemSummaryModel> summaryMap = {};
+
+    for (SoldItem item in filteredItems) {
+      if (summaryMap.containsKey(item.stockItem.id)) {
+        final SoldItemSummaryModel existing = summaryMap[item.stockItem.id]!;
+        summaryMap[item.stockItem.id] = SoldItemSummaryModel(
+          soldItem: item,
+          soldQuantity: existing.soldQuantity + item.quantitySold,
+          totalRevenue:
+              existing.totalRevenue + (item.sellPrice * item.quantitySold),
+          totalProfit:
+              existing.totalProfit +
+              ((item.sellPrice - item.stockItem.buyPrice) * item.quantitySold),
+          marginPercent:
+              existing.totalRevenue != 0
+                  ? ((existing.totalProfit +
+                              (item.sellPrice - item.stockItem.buyPrice) *
+                                  item.quantitySold) /
+                          (existing.totalRevenue +
+                              (item.sellPrice * item.quantitySold))) *
+                      100
+                  : 0.0,
+          timeWindow: timeWindow,
+        );
+      } else {
+        summaryMap[item.stockItem.id] = SoldItemSummaryModel(
+          soldItem: item,
+          soldQuantity: item.quantitySold,
+          totalRevenue: item.sellPrice * item.quantitySold,
+          totalProfit:
+              (item.sellPrice - item.stockItem.buyPrice) * item.quantitySold,
+          marginPercent:
+              item.sellPrice != 0
+                  ? ((item.sellPrice - item.stockItem.buyPrice) /
+                          item.sellPrice) *
+                      100
+                  : 0.0,
+          timeWindow: timeWindow,
+        );
+      }
+    }
+
+    // Convert to list and sort by totalQuantitySold descending
+    final sortedSummaries =
+        summaryMap.values.toList()
+          ..sort((a, b) => b.soldQuantity.compareTo(a.soldQuantity));
+
+    // Return top [limit] sellers
+    return sortedSummaries.take(limit).toList();
   }
 }

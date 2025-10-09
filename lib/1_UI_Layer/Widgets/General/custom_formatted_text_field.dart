@@ -96,7 +96,7 @@ class _CustomFormattedTextFieldState extends State<CustomFormattedTextField> {
           widget.decoration ??
           InputDecoration(
             filled: true,
-            fillColor: scheme.surfaceVariant, // spec default
+            fillColor: scheme.surfaceContainer, // spec default
             labelText: widget.labelText,
             labelStyle: widget.labelTextStyle,
             floatingLabelStyle:

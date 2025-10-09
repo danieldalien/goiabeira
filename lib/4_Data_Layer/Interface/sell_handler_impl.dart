@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:goiabeira/3_Domain_Layer/Interface/sell_handler_interface.dart';
@@ -20,10 +21,26 @@ class SellHandlerImpl implements SellHandlerInterface {
     required this.fileStorageRepository,
   });
 
+  final _soldItemBroadcast = StreamController<List<SoldItem>>.broadcast();
+
+  @override
+  Stream<List<SoldItem>> get soldItemStream => _soldItemBroadcast.stream;
+
+  void _emit() {
+    // Snapshot details
+    final len = _soldItems.length;
+    final ids = _soldItems.map((e) => e.id).toList();
+    print(
+      '[SellHandler] EMIT len=$len ids=$ids  listRef=${_soldItems.hashCode}',
+    );
+    _soldItemBroadcast.add(List.unmodifiable(_soldItems));
+  }
+
   @override
   Future<void> init(dynamic db) async {
     _soldItems = await readAllSoldItems();
-    _soldItemService = SoldItemService(soldItems: _soldItems);
+    _soldItemService = SoldItemService(soldItems: List.of(_soldItems));
+    _emit();
   }
 
   @override
@@ -33,12 +50,13 @@ class SellHandlerImpl implements SellHandlerInterface {
 
     try {
       print(
-        '3 SELL HANDLER. Selling item: ${soldItem.stockItem.title} : with Stock_ID ${soldItem.stockItem.id} , SELL_ID: ${soldItem.idSoldItem}',
+        '3 SELL HANDLER. Selling item: ${soldItem.stockItem.title} : with Stock_ID ${soldItem.stockItem.id} , SELL_ID: ${soldItem.id}',
       );
       await repository.create(soldItem);
       _soldItems.add(soldItem);
       // Update the service with the new sold item
-      _soldItemService.updateSoldItems(_soldItems);
+      _soldItemService.updateSoldItems(List.of(_soldItems));
+      _emit();
     } catch (e) {
       print(e);
     }
@@ -50,11 +68,12 @@ class SellHandlerImpl implements SellHandlerInterface {
     print(soldItem); // View the exact data being passed
 
     try {
-      _soldItems.removeWhere((element) => element.idSoldItem == int.parse(id));
+      _soldItems.removeWhere((element) => element.id == int.parse(id));
       _soldItems.add(soldItem);
       // Update the service with the modified sold item
-      _soldItemService.updateSoldItems(_soldItems);
+      _soldItemService.updateSoldItems(List.of(_soldItems));
       await repository.update(id, soldItem);
+      _emit();
     } catch (e) {
       print(e);
     }
@@ -65,14 +84,13 @@ class SellHandlerImpl implements SellHandlerInterface {
     print(soldItem.runtimeType); // Ensure values match expected types
     print(soldItem); // View the exact data being passed
     try {
-      _soldItems.removeWhere(
-        (element) => element.idSoldItem == soldItem.idSoldItem,
-      );
+      _soldItems.removeWhere((element) => element.id == soldItem.id);
       // Update the service with the modified sold items list
-      _soldItemService.updateSoldItems(_soldItems);
-      await repository.delete(soldItem.idSoldItem.toString());
+      _soldItemService.updateSoldItems(List.of(_soldItems));
+      await repository.delete(soldItem.id.toString());
+      _emit();
     } catch (e) {
-      print(e);
+      throw Exception('Failed to delete sold item');
     }
   }
 
@@ -107,7 +125,7 @@ class SellHandlerImpl implements SellHandlerInterface {
     } catch (e) {
       print(e);
     }
-    return [];
+    return _soldItems;
   }
 
   @override

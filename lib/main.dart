@@ -15,6 +15,7 @@ import 'package:goiabeira/4_Data_Layer/Repo/local_database_repo.dart';
 import 'package:goiabeira/4_Data_Layer/Repo/local_file_storage_repo.dart';
 import 'package:goiabeira/4_Data_Layer/Service/get_it_service.dart';
 
+// TODO: sold items dont get updated in databse, becasue when i refresh qtantity is reset to 1
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   DatabaseRepository<StockItem> stockItemRepository =
@@ -53,7 +54,7 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  static const seed = Color.fromARGB(255, 255, 114, 20);
+  static const seed = Color.fromARGB(255, 255, 20, 122);
 
   static final lightScheme = ColorScheme.fromSeed(
     seedColor: seed,
@@ -97,7 +98,7 @@ class MyApp extends StatelessWidget {
           indicatorColor: darkScheme.primaryContainer,
         ),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Goiabeira Home Page'),
     );
   }
 }
