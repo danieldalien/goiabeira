@@ -1,6 +1,7 @@
 import 'package:goiabeira/0_Core/Enums/time_window.dart';
 import 'package:goiabeira/3_Domain_Layer/Interface/sell_handler_interface.dart';
 import 'package:goiabeira/3_Domain_Layer/Interface/stock_handler_interface.dart';
+import 'package:goiabeira/4_Data_Layer/Model/analyze_model.dart';
 import 'package:goiabeira/4_Data_Layer/Model/item_category.dart';
 import 'package:goiabeira/4_Data_Layer/Model/quantiy_value_model.dart';
 import 'package:goiabeira/4_Data_Layer/Model/sold_item_summary_model.dart';
@@ -17,26 +18,40 @@ abstract class AnalyticsService {
   Future<void> init() async {}
   Future<void> dispose() async {}
 
-  double getTotalStockValue();
-  double getTotalSoldValue();
+  double getTotalStockValue({TimeWindow? timeWindow});
 
-  double getTotalProfit();
+  double getTotalSoldValue({
+    DateTime? start,
+    DateTime? end,
+    TimeWindow? timeWindow,
+  });
 
-  double getProfitByTimeframe(DateTime start, DateTime end);
-
-  double getProfitForThisWeek();
-
-  double getProfitForThisMonth();
-
-  Map<DateTime, double> getProfitByPeriod(DateTime start, int days);
+  double getTotalProfit({
+    DateTime? start,
+    DateTime? end,
+    TimeWindow? timeWindow,
+  });
 
   //int getSoldQuantityByTimeframe(DateTime start, DateTime end);
 
-  double getProfitByCategory(String category);
+  double getProfitByCategory(
+    String category, {
+    DateTime? start,
+    DateTime? end,
+    TimeWindow? timeWindow,
+  });
 
-  int getTotalSoldQuantity();
+  int getTotalSoldQuantity({
+    DateTime? start,
+    DateTime? end,
+    TimeWindow? timeWindow,
+  });
 
-  int getTotalStockQuantity();
+  int getTotalStockQuantity({
+    DateTime? start,
+    DateTime? end,
+    TimeWindow? timeWindow,
+  });
 
   Map<ItemCategory, QuantiyValueModel> getQuantityValueByCategory();
 
@@ -46,4 +61,5 @@ abstract class AnalyticsService {
     int limit = 10,
     //SortBy sortBy = SortBy.quantity, // quantity | revenue | profit
   });
+  AnalyzeModel getAnalyzeModelForTimeWindow(TimeWindow timeWindow);
 }

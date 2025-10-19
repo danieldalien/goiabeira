@@ -19,6 +19,8 @@ class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
 
   AnalyticsBloc() : super(AnalyticsState()) {
     on<AnalyticsInitial>(_onAnalyticsInitial);
+    on<AnalyticsTimeWindowChanged>(_onTimeWindowChanged);
+    on<AnalyticsHighlightTimeWindowChanged>(_onHighlightTimeWindowChanged);
     //on<ResetAnalyticsState>(_onResetAnalyticsState);
   }
 
@@ -29,43 +31,22 @@ class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
     emit(state.copyWith(appState: AppState.loading));
     try {
       await _analyticsService.init();
-      final double totalStockValue = _analyticsService.getTotalStockValue();
-      final double totalSoldValue = _analyticsService.getTotalSoldValue();
-      final double totalProfit = _analyticsService.getTotalProfit();
-
-      final DateTime startDate = DateTime.now();
-      final DateTime oneMonthAgo = DateTime(
-        startDate.year,
-        startDate.month - 1,
-        startDate.day,
-        startDate.hour,
-        startDate.minute,
-        startDate.second,
-        startDate.millisecond,
-        startDate.microsecond,
-      );
-
-      final AnalyzeModel analyzeModel = AnalyzeModel(
-        totalStockValue: totalStockValue,
-        totalSoldValue: totalSoldValue,
-        totalProfit: totalProfit,
-        profitByPeriod: _analyticsService.getProfitByPeriod(oneMonthAgo, 7),
-        totalSoldQuantity: _analyticsService.getTotalSoldQuantity(),
-        totalStockQuantity: _analyticsService.getTotalStockQuantity(),
-        profitThisWeek: _analyticsService.getProfitForThisWeek(),
-        profitThisMonth: _analyticsService.getProfitForThisMonth(),
-      );
 
       final Map<ItemCategory, QuantiyValueModel> quantityValueByCategory =
           _analyticsService.getQuantityValueByCategory();
 
       final List<SoldItemSummaryModel> topSellers = _analyticsService
-          .getTopSellers(timeWindow: TimeWindow.allTime, limit: 5);
+          .getTopSellers(
+            timeWindow: state.selectedHightlightTimeWindow,
+            limit: 10,
+          );
 
       emit(
         state.copyWith(
           appState: AppState.idle,
-          analyzeModel: analyzeModel,
+          analyzeModel: _analyticsService.getAnalyzeModelForTimeWindow(
+            state.selectedTimeWindow,
+          ),
           stateTriggered: !state.stateTriggered,
           quantityValueByCategory: quantityValueByCategory,
           topSellers: topSellers,
@@ -82,5 +63,31 @@ class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
       );
     }
     emit(state.copyWith(appState: AppState.idle));
+  }
+
+  void _onTimeWindowChanged(
+    AnalyticsTimeWindowChanged event,
+    Emitter<AnalyticsState> emit,
+  ) {
+    emit(
+      state.copyWith(
+        selectedTimeWindow: event.selectedTimeWindow,
+        analyzeModel: _analyticsService.getAnalyzeModelForTimeWindow(
+          event.selectedTimeWindow,
+        ),
+      ),
+    );
+  }
+
+  void _onHighlightTimeWindowChanged(
+    AnalyticsHighlightTimeWindowChanged event,
+    Emitter<AnalyticsState> emit,
+  ) {
+    emit(
+      state.copyWith(
+        selectedHightlightTimeWindow: event.selectedTimeWindow,
+        stateTriggered: !state.stateTriggered,
+      ),
+    );
   }
 }

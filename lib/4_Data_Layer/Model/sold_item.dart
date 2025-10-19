@@ -62,6 +62,32 @@ class SoldItem {
       'sellPriceReal': soldItem.sellPrice,
       'sellDate': soldItem.sellDate.toString(), // '2021-10-10 10:10:10.000
       'customerId': soldItem.client.id,
+      'createdAt': soldItem.stockItem.createdAt.toIso8601String(),
+    };
+  }
+
+  static Map<String, dynamic> toCsv(SoldItem soldItem) {
+    return {
+      'id': soldItem.id,
+      'title': soldItem.stockItem.title,
+      'description': soldItem.stockItem.description,
+      'buyPrice': soldItem.stockItem.buyPrice,
+      'sellPrice': soldItem.stockItem.sellPrice,
+      'idStockItem': soldItem.stockItem.id,
+      'category': soldItem.stockItem.category.name,
+      'idSupplier': soldItem.stockItem.idSupplier,
+      'barcodeArticel': soldItem.stockItem.barcodeArticel,
+      'barcodeSupplier': soldItem.stockItem.barcodeSupplier,
+      'quantity': soldItem.stockItem.quantity,
+      'quantitySold': soldItem.quantitySold,
+      'sellPriceReal': soldItem.sellPrice,
+      'sellDate': soldItem.sellDate.toString(), // '2021-10-10 10:10:10.000
+      'clientName': soldItem.client.name,
+      'clientId': soldItem.client.id,
+      'clientEmail': soldItem.client.email,
+      'clientPhone': soldItem.client.phone,
+      'discount': soldItem.discount,
+      'createdAt': soldItem.stockItem.createdAt.toIso8601String(),
     };
   }
 

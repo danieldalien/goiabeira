@@ -77,6 +77,7 @@ class AppDependencies {
       idSupplier TEXT,
       barcodeArticel TEXT,
       barcodeSupplier TEXT,
+      createdAt TEXT,
       quantity INTEGER
     )
   ''',
@@ -112,6 +113,7 @@ class AppDependencies {
       quantitySold INTEGER,
       sellPriceReal REAL,
       sellDate TEXT,
+      createdAt TEXT,
       customerId TEXT 
     )
     ''',

@@ -18,6 +18,7 @@ class StockItem {
   final String barcodeSupplier;
   final int quantity;
   List<File?> imageFiles = [];
+  final DateTime createdAt;
 
   StockItem({
     required this.title,
@@ -31,6 +32,7 @@ class StockItem {
     required this.barcodeArticel,
     required this.barcodeSupplier,
     required this.quantity,
+    required this.createdAt,
     this.imageFiles = const [],
   });
 
@@ -47,6 +49,7 @@ class StockItem {
     required this.barcodeArticel,
     required this.barcodeSupplier,
     required this.quantity,
+    required this.createdAt,
     this.imageFiles = const [],
   });
 
@@ -62,6 +65,7 @@ class StockItem {
       barcodeArticel = '',
       barcodeSupplier = '',
       quantity = 0,
+      createdAt = DateTime.now(),
       imageFiles = [];
 
   StockItem.test()
@@ -76,6 +80,7 @@ class StockItem {
       barcodeArticel = 'Test',
       barcodeSupplier = 'Test',
       quantity = 0,
+      createdAt = DateTime.now(),
       imageFiles = [];
 
   Map<String, dynamic> toJson() {
@@ -91,6 +96,7 @@ class StockItem {
       'barcodeArticel': barcodeArticel,
       'barcodeSupplier': barcodeSupplier,
       'quantity': quantity,
+      'createdAt': createdAt.toIso8601String(),
     };
   }
 
@@ -107,6 +113,23 @@ class StockItem {
       'barcodeArticel': stockItem.barcodeArticel,
       'barcodeSupplier': stockItem.barcodeSupplier,
       'quantity': stockItem.quantity,
+      'createdAt': stockItem.createdAt.toIso8601String(),
+    };
+  }
+
+  static Map<String, dynamic> toCsv(StockItem stockItem) {
+    return {
+      'title': stockItem.title,
+      'description': stockItem.description,
+      'buyPrice': stockItem.buyPrice,
+      'sellPrice': stockItem.sellPrice,
+      'category': stockItem.category.name,
+      'id': stockItem.id,
+      'idSupplier': stockItem.idSupplier,
+      'barcodeArticel': stockItem.barcodeArticel,
+      'barcodeSupplier': stockItem.barcodeSupplier,
+      'quantity': stockItem.quantity,
+      'createdAt': stockItem.createdAt.toIso8601String(),
     };
   }
 
@@ -154,7 +177,9 @@ class StockItem {
       buyPrice: buyPrice,
       sellPrice: sellPrice,
       category: ItemCategory.fromString(json['category']),
+      createdAt: DateTime.parse(json['createdAt']),
       imageList: cleanedImageList, // Use the cleaned image list
+
       id:
           !fromSoldItem
               ? NumberManipulation.numberToInt(json['id']) ??
@@ -180,6 +205,7 @@ class StockItem {
     String? barcodeArticel,
     String? barcodeSupplier,
     int? quantity,
+    DateTime? createdAt,
     List<File?>? imageFiles,
   }) {
     return StockItem(
@@ -194,6 +220,7 @@ class StockItem {
       barcodeArticel: barcodeArticel ?? this.barcodeArticel,
       barcodeSupplier: barcodeSupplier ?? this.barcodeSupplier,
       quantity: quantity ?? this.quantity,
+      createdAt: createdAt ?? this.createdAt,
       imageFiles: imageFiles ?? this.imageFiles,
     );
   }

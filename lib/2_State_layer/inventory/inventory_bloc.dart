@@ -17,16 +17,15 @@ part 'inventory_event.dart';
 part 'inventory_state.dart';
 
 class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
-  final StockHandlerInterface _stockHandler =
-      GetIt.instance<StockHandlerInterface>();
+  final StockHandlerInterface _stockHandler;
 
-  final SellHandlerInterface _sellHandler =
-      GetIt.instance<SellHandlerInterface>();
+  final SellHandlerInterface _sellHandler;
 
   final ItemCategoryRepo _itemCategoryHandler =
       GetIt.instance<ItemCategoryRepo>();
 
-  InventoryBloc() : super(InventoryState()) {
+  InventoryBloc(this._stockHandler, this._sellHandler)
+    : super(InventoryState()) {
     on<InventoryInitial>(_onInventoryInitial);
     on<ResetInventoryState>(_onResetInventoryState);
     on<CreateStockItem>(_onCreateStockItem);

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:goiabeira/0_Core/Enums/time_window.dart';
 import 'package:goiabeira/1_UI_Layer/Screen/Analytics/analystic_summary.dart';
+import 'package:goiabeira/1_UI_Layer/Screen/Analytics/highlight_container.dart';
+import 'package:goiabeira/1_UI_Layer/Widgets/time_window_popup_menu.dart';
 import 'package:goiabeira/1_UI_Layer/Widgets/top_selling_item_card.dart';
 
 import 'package:goiabeira/2_State_layer/analytics/analytics_bloc.dart';
@@ -20,7 +22,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     context.read<AnalyticsBloc>().add(AnalyticsInitial());
   }
 
-  final List<TimeWindow> timeWindowsWithoutCustom =
+  final List<TimeWindow> _timeWindowsWithoutCustom =
       TimeWindow.values.where((e) => e != TimeWindow.custom).toList();
 
   /* ────────────────────────── UI ────────────────────────── */
@@ -43,7 +45,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   child: AnalysticSummary(
                     model: state.analyzeModel,
                     selectedTimeWindow: state.selectedTimeWindow,
-                    items: timeWindowsWithoutCustom,
+                    items: _timeWindowsWithoutCustom,
                     onSelected: (w) => _onTimeWindowSelected(context, w),
                     onRefresh: () {
                       context.read<AnalyticsBloc>().add(AnalyticsInitial());
@@ -51,6 +53,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   ),
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                SliverToBoxAdapter(
+                  child: HighlightContainer(
+                    selectedTimeWindow: state.selectedHightlightTimeWindow,
+                    timeWindowsItems: _timeWindowsWithoutCustom,
+                    topSellers: state.topSellers,
+                    onSelected: (w) => _ontTimeWindowHighlightSelected(w),
+                  ),
+                ),
+                /*
                 SliverList.builder(
                   itemCount: state.topSellers.length,
                   itemBuilder: (context, index) {
@@ -66,6 +77,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     );
                   },
                 ),
+                */
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
               ],
             ),
@@ -74,10 +86,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       ),
     );
   }
-}
 
-void _onTimeWindowSelected(BuildContext context, TimeWindow window) {
-  context.read<AnalyticsBloc>().add(AnalyticsTimeWindowChanged(window));
-}
+  void _ontTimeWindowHighlightSelected(TimeWindow window) {
+    context.read<AnalyticsBloc>().add(
+      AnalyticsHighlightTimeWindowChanged(window),
+    );
+  }
 
-/* ──────────────────────── Tile row ──────────────────────── */
+  void _onTimeWindowSelected(BuildContext context, TimeWindow window) {
+    context.read<AnalyticsBloc>().add(AnalyticsTimeWindowChanged(window));
+  }
+
+  /* ──────────────────────── Tile row ──────────────────────── */
+}

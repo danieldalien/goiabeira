@@ -5,6 +5,7 @@ import 'package:goiabeira/0_Core/Utility/date_time_utility.dart';
 import 'package:goiabeira/3_Domain_Layer/Interface/sell_handler_interface.dart';
 import 'package:goiabeira/3_Domain_Layer/Interface/stock_handler_interface.dart';
 import 'package:goiabeira/3_Domain_Layer/Services/analytics_service.dart';
+import 'package:goiabeira/4_Data_Layer/Model/analyze_model.dart';
 import 'package:goiabeira/4_Data_Layer/Model/item_category.dart';
 import 'package:goiabeira/4_Data_Layer/Model/quantiy_value_model.dart';
 import 'package:goiabeira/4_Data_Layer/Model/sold_item.dart';
@@ -56,100 +57,174 @@ class AnalyticsServiceImpl implements AnalyticsService {
   }
 
   /// Returns the total value of stock (buyPrice * quantity) for all items.
+  /// Calculates the total stock value.
+  /// If [timeWindow] is given, includes only items bought within that period.
   @override
-  double getTotalStockValue() {
-    return stockItems.fold(
+  double getTotalStockValue({TimeWindow? timeWindow}) {
+    DateTime? start;
+    DateTime? end;
+
+    final range = timeWindow?.getRange();
+    if (range != null) {
+      start = range.$1;
+      end = range.$2;
+    }
+
+    final filtered = stockItems.where((item) {
+      if (start == null || end == null) return true;
+      return !item.createdAt.isBefore(start) && !item.createdAt.isAfter(end);
+    });
+
+    return filtered.fold<double>(
       0.0,
-      (double total, item) => total + item.buyPrice * item.quantity,
+      (total, item) => total + item.buyPrice * item.quantity,
     );
   }
 
-  /// Returns the total sold value (sellPrice * quantitySold) for all sold items.
+  /// Calculates the total sold value (revenue) within a timeframe.
+  /// Accepts either [start]/[end] or a [timeWindow].
   @override
-  double getTotalSoldValue() {
-    return soldItems.fold(
+  double getTotalSoldValue({
+    DateTime? start,
+    DateTime? end,
+    TimeWindow? timeWindow,
+  }) {
+    // Resolve timeframe
+    DateTime? s = start;
+    DateTime? e = end;
+
+    final range = timeWindow?.getRange();
+    if ((s == null || e == null) && range != null) {
+      s = range.$1;
+      e = range.$2;
+    }
+
+    // Filter items if a range is provided
+    final filtered = soldItems.where((item) {
+      if (s == null || e == null) return true; // all-time
+      return !item.sellDate.isBefore(s) && !item.sellDate.isAfter(e);
+    });
+
+    // Sum up the total sold value
+    return filtered.fold<double>(
       0.0,
-      (double total, item) => total + item.sellPrice * item.quantitySold,
+      (total, item) => total + item.sellPrice * item.quantitySold,
     );
   }
 
-  /// Returns the overall profit as total sold value minus total stock value.
+  /// Returns overall profit as (sellPrice - buyPrice) * quantitySold
+  /// within a timeframe. If no timeframe is provided → all-time.
+  ///
+  /// Profit is attributed to the period of the SALE (sellDate),
+  /// regardless of when the stock was bought.
   @override
-  double getTotalProfit() {
-    double profit = 0.0;
-    for (SoldItem item in soldItems) {
-      profit += (item.sellPrice - item.stockItem.buyPrice) * item.quantitySold;
+  double getTotalProfit({
+    DateTime? start,
+    DateTime? end,
+    TimeWindow? timeWindow,
+  }) {
+    // Resolve timeframe from TimeWindow if needed
+    DateTime? s = start;
+    DateTime? e = end;
+
+    final range = timeWindow?.getRange(); // from the TimeWindowRange extension
+    if ((s == null || e == null) && range != null) {
+      s = range.$1;
+      e = range.$2;
     }
-    return profit;
-  }
 
-  /// Calculates profit for sold items whose sellDate is between [start] and [end].
-  @override
-  double getProfitByTimeframe(DateTime start, DateTime end) {
-    return soldItems
-        .where(
-          (item) =>
-              !item.sellDate.isBefore(start) && !item.sellDate.isAfter(end),
-        )
-        .fold(
-          0.0,
-          (double total, item) => total + item.sellPrice * item.quantitySold,
-        );
-  }
+    final Iterable<SoldItem> filtered = soldItems.where((item) {
+      if (s == null || e == null) return true; // all-time
+      return !item.sellDate.isBefore(s) && !item.sellDate.isAfter(e);
+    });
 
-  @override
-  double getProfitForThisWeek() {
-    final DateTime firstDayOfWeek = DateTimeUtility.getFirstDayOfWeek();
-    return getProfitByTimeframe(firstDayOfWeek, DateTime.now());
-  }
-
-  @override
-  double getProfitForThisMonth() {
-    final DateTime firstDayOfMonth = DateTimeUtility.getFirstDayOfMonth();
-    return getProfitByTimeframe(firstDayOfMonth, DateTime.now());
-  }
-
-  /// Groups profits by period from [start] to now in intervals of [days] days.
-  @override
-  Map<DateTime, double> getProfitByPeriod(DateTime start, int days) {
-    final profits = <DateTime, double>{};
-    final now = DateTime.now();
-    final int totalDays = now.difference(start).inDays;
-
-    for (int i = 0; i < totalDays; i += days) {
-      final DateTime periodStart = start.add(Duration(days: i));
-      DateTime periodEnd = periodStart.add(Duration(days: days));
-      // Clamp periodEnd to now if it goes beyond.
-      if (periodEnd.isAfter(now)) {
-        periodEnd = now;
-      }
-      double profit = getProfitByTimeframe(periodStart, periodEnd);
-      profits[periodStart] = profit;
-    }
-    return profits;
+    return filtered.fold<double>(
+      0.0,
+      (total, item) =>
+          total +
+          (item.sellPrice - item.stockItem.buyPrice) * item.quantitySold,
+    );
   }
 
   /// Calculates profit for sold items filtered by [category].
+  /// Accepts either explicit [start]/[end] or a [timeWindow].
   @override
-  double getProfitByCategory(String category) {
-    return soldItems
-        .where((item) => item.stockItem.category.name == category)
-        .fold(
-          0.0,
-          (double total, item) => total + item.sellPrice * item.quantitySold,
-        );
+  double getProfitByCategory(
+    String category, {
+    DateTime? start,
+    DateTime? end,
+    TimeWindow? timeWindow,
+  }) {
+    DateTime? s = start;
+    DateTime? e = end;
+
+    final range = timeWindow?.getRange();
+    if ((s == null || e == null) && range != null) {
+      s = range.$1;
+      e = range.$2;
+    }
+
+    final filtered = soldItems.where((item) {
+      final matchesCategory = item.stockItem.category.name == category;
+      if (!matchesCategory) return false;
+      if (s == null || e == null) return true;
+      return !item.sellDate.isBefore(s) && !item.sellDate.isAfter(e);
+    });
+
+    return filtered.fold<double>(
+      0.0,
+      (total, item) => total + item.sellPrice * item.quantitySold,
+    );
   }
 
-  /// Returns the total quantity of sold items.
+  /// Returns the total quantity of sold items within a timeframe.
+  /// If no timeframe is provided, returns all-time total.
   @override
-  int getTotalSoldQuantity() {
-    return soldItems.fold(0, (int total, item) => total + item.quantitySold);
+  int getTotalSoldQuantity({
+    DateTime? start,
+    DateTime? end,
+    TimeWindow? timeWindow,
+  }) {
+    DateTime? s = start;
+    DateTime? e = end;
+
+    final range = timeWindow?.getRange();
+    if ((s == null || e == null) && range != null) {
+      s = range.$1;
+      e = range.$2;
+    }
+
+    final filtered = soldItems.where((item) {
+      if (s == null || e == null) return true;
+      return !item.sellDate.isBefore(s) && !item.sellDate.isAfter(e);
+    });
+
+    return filtered.fold<int>(0, (total, item) => total + item.quantitySold);
   }
 
-  /// Returns the total quantity of stock items.
+  /// Returns the total quantity of stock items within a timeframe.
+  /// If [timeWindow] is provided, filters by [buyDate].
   @override
-  int getTotalStockQuantity() {
-    return stockItems.fold(0, (int total, item) => total + item.quantity);
+  int getTotalStockQuantity({
+    DateTime? start,
+    DateTime? end,
+    TimeWindow? timeWindow,
+  }) {
+    DateTime? s = start;
+    DateTime? e = end;
+
+    final range = timeWindow?.getRange();
+    if ((s == null || e == null) && range != null) {
+      s = range.$1;
+      e = range.$2;
+    }
+
+    final filtered = stockItems.where((item) {
+      if (s == null || e == null) return true;
+      return !item.createdAt.isBefore(s) && !item.createdAt.isAfter(e);
+    });
+
+    return filtered.fold<int>(0, (total, item) => total + item.quantity);
   }
 
   /// Returns a map of ItemCategory to QuantiyValueModel with total quantity and value.
@@ -170,6 +245,21 @@ class AnalyticsServiceImpl implements AnalyticsService {
       }
     }
     return result;
+  }
+
+  @override
+  AnalyzeModel getAnalyzeModelForTimeWindow(TimeWindow timeWindow) {
+    // Implementation depends on how AnalyzeModel is defined.
+    // Here we return a dummy model for demonstration.
+    final AnalyzeModel analyzeModel = AnalyzeModel(
+      totalStockValue: getTotalStockValue(timeWindow: timeWindow),
+      totalSoldValue: getTotalSoldValue(timeWindow: timeWindow),
+      totalProfit: getTotalProfit(timeWindow: timeWindow),
+      totalSoldQuantity: getTotalSoldQuantity(timeWindow: timeWindow),
+      totalStockQuantity: getTotalStockQuantity(timeWindow: timeWindow),
+    );
+
+    return analyzeModel;
   }
 
   @override
@@ -264,5 +354,11 @@ class AnalyticsServiceImpl implements AnalyticsService {
 
     // Return top [limit] sellers
     return sortedSummaries.take(limit).toList();
+  }
+
+  double getStockValueByTimeWindow(TimeWindow timeWindow) {
+    // Implementation depends on how you define stock value by time window.
+    // Here we return a dummy value for demonstration.
+    return getTotalStockValue();
   }
 }

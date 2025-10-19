@@ -5,11 +5,6 @@ import 'package:goiabeira/1_UI_Layer/Widgets/time_window_popup_menu.dart';
 import 'package:goiabeira/4_Data_Layer/Model/analyze_model.dart';
 
 class AnalysticSummary extends StatelessWidget {
-  final Function()? onRefresh;
-  final TimeWindow selectedTimeWindow;
-  final ValueChanged<TimeWindow> onSelected;
-  final List<TimeWindow> items;
-
   const AnalysticSummary({
     required this.model,
     required this.selectedTimeWindow,
@@ -20,87 +15,159 @@ class AnalysticSummary extends StatelessWidget {
   });
 
   final AnalyzeModel model;
+  final Function()? onRefresh;
+  final TimeWindow selectedTimeWindow;
+  final ValueChanged<TimeWindow> onSelected;
+  final List<TimeWindow> items;
 
-  static const _gap = SizedBox(height: 12);
+  static const _hGap = SizedBox(height: 12);
+  static const _vGap = SizedBox(width: 12);
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return Card(
-      elevation: 0, // flat per M3
-      surfaceTintColor: scheme.surfaceTint,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 0,
+      color: scheme.surfaceContainerHighest, // matches HighlightContainer
       clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Overview',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                ),
-                TimeWindowPopupMenu(
-                  label: selectedTimeWindow.displayName,
-                  color: scheme.secondary,
-                  items: items,
-                  onSelected: onSelected,
-                ),
-              ],
-            ),
-            _gap,
-            DataChip(
-              icon: Icons.store,
-              label: 'Total stock value',
-              value: model.totalStockValue.toStringAsFixed(2),
-            ),
-            DataChip(
-              icon: Icons.inventory_2,
-              label: 'Total stock quantity',
-              value: '${model.totalStockQuantity}',
-            ),
-            DataChip(
-              icon: Icons.shopping_cart,
-              label: 'Total sold value',
-              value: (model.totalSoldValue).toStringAsFixed(2),
-            ),
-            DataChip(
-              icon: Icons.attach_money,
-              label: 'Total profit',
-              value: (model.totalProfit).toStringAsFixed(2),
-            ),
-            DataChip(
-              icon: Icons.sell,
-              label: 'Total sold quantity',
-              value: '${model.totalSoldQuantity}',
-            ),
-            DataChip(
-              icon: Icons.trending_up,
-              label: 'Profit this week',
-              value: (model.profitThisWeek).toStringAsFixed(2),
-            ),
-            DataChip(
-              icon: Icons.calendar_month,
-              label: 'Profit this month',
-              value: (model.profitThisMonth).toStringAsFixed(2),
-            ),
-            const Divider(height: 32),
-            Center(
-              child: FilledButton.icon(
-                onPressed: onRefresh,
-
-                icon: const Icon(Icons.refresh),
-                label: const Text('Refresh'),
+            // ---- Header ------------------------------------------------------
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+              leading: CircleAvatar(
+                backgroundColor: scheme.secondaryContainer,
+                child: Icon(Icons.insights, color: scheme.onSecondaryContainer),
               ),
+              title: Text('Overview', style: theme.textTheme.titleLarge),
+              subtitle: Text(
+                selectedTimeWindow.displayName,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton.filledTonal(
+                    tooltip: 'Refresh',
+                    onPressed: onRefresh,
+                    icon: const Icon(Icons.refresh),
+                  ),
+                  const SizedBox(width: 8),
+                  TimeWindowPopupMenu(
+                    label: selectedTimeWindow.displayName,
+                    color: scheme.secondary,
+                    items: items,
+                    onSelected: onSelected,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 8),
+            Divider(height: 1, thickness: 1, color: scheme.outlineVariant),
+            const SizedBox(height: 8),
+
+            // ---- Body --------------------------------------------------------
+            AnimatedSize(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              child: _MetricsGrid(model: model),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _MetricsGrid extends StatelessWidget {
+  const _MetricsGrid({required this.model});
+  final AnalyzeModel model;
+
+  @override
+  Widget build(BuildContext context) {
+    // Responsive: use Wrap so it flows nicely on small/large screens.
+    // (If you prefer a fixed grid: use GridView with shrinkWrap + NeverScrollableScrollPhysics)
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // tweak spacing/line breaks by width
+        final isWide = constraints.maxWidth >= 560;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                SizedBox(
+                  width:
+                      isWide
+                          ? (constraints.maxWidth - 12) / 2
+                          : double.infinity,
+                  child: DataChip(
+                    icon: Icons.store,
+                    label: 'Total stock value',
+                    value: model.totalStockValue.toStringAsFixed(2),
+                  ),
+                ),
+                SizedBox(
+                  width:
+                      isWide
+                          ? (constraints.maxWidth - 12) / 2
+                          : double.infinity,
+                  child: DataChip(
+                    icon: Icons.inventory_2,
+                    label: 'Total stock quantity',
+                    value: '${model.totalStockQuantity}',
+                  ),
+                ),
+                SizedBox(
+                  width:
+                      isWide
+                          ? (constraints.maxWidth - 12) / 2
+                          : double.infinity,
+                  child: DataChip(
+                    icon: Icons.shopping_cart,
+                    label: 'Total sold value',
+                    value: model.totalSoldValue.toStringAsFixed(2),
+                  ),
+                ),
+                SizedBox(
+                  width:
+                      isWide
+                          ? (constraints.maxWidth - 12) / 2
+                          : double.infinity,
+                  child: DataChip(
+                    icon: Icons.attach_money,
+                    label: 'Total profit',
+                    value: model.totalProfit.toStringAsFixed(2),
+                  ),
+                ),
+                SizedBox(
+                  width:
+                      isWide
+                          ? (constraints.maxWidth - 12) / 2
+                          : double.infinity,
+                  child: DataChip(
+                    icon: Icons.sell,
+                    label: 'Total sold quantity',
+                    value: '${model.totalSoldQuantity}',
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }

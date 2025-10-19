@@ -76,9 +76,12 @@ class StockHandlerImpl implements StockHandlerInterface {
     List<String> imageUrls = await fileStorageRepository.createMultipleFiles(
       stockItem.imageFiles,
     );
+    final saved = stockItem.copyWith(imageList: imageUrls, imageFiles: []);
     try {
-      await repository.create(stockItem.copyWith(imageList: imageUrls));
-      _stockItems.add(stockItem);
+      await repository.create(saved);
+      final files = await downloadImages(imageUrls);
+      final cached = saved.copyWith(imageFiles: files);
+      _stockItems.add(cached);
       _emit();
     } catch (e) {
       throw Exception('Failed to create stock item');

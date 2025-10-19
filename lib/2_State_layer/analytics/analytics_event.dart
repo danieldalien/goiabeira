@@ -15,3 +15,12 @@ class AnalyticsTimeWindowChanged extends AnalyticsEvent {
   @override
   List<Object> get props => [selectedTimeWindow];
 }
+
+class AnalyticsHighlightTimeWindowChanged extends AnalyticsEvent {
+  final TimeWindow selectedTimeWindow;
+
+  AnalyticsHighlightTimeWindowChanged(this.selectedTimeWindow);
+
+  @override
+  List<Object> get props => [selectedTimeWindow];
+}

@@ -8,8 +8,9 @@ class AnalyticsState extends Equatable {
   final List<MessageModel> messages;
   final AnalyzeModel analyzeModel;
   final TimeWindow selectedTimeWindow;
+  final TimeWindow selectedHightlightTimeWindow;
   final List<SoldItemSummaryModel> topSellers;
-  Map<ItemCategory, QuantiyValueModel> quantityValueByCategory;
+  final Map<ItemCategory, QuantiyValueModel> quantityValueByCategory;
 
   AnalyticsState({
     this.stateTriggered = false,
@@ -18,6 +19,7 @@ class AnalyticsState extends Equatable {
     MessageModel? message,
     this.messages = const [],
     this.selectedTimeWindow = TimeWindow.last30Days,
+    this.selectedHightlightTimeWindow = TimeWindow.last30Days,
     AnalyzeModel? analyzeModel,
     this.topSellers = const [],
     this.quantityValueByCategory = const {},
@@ -33,6 +35,7 @@ class AnalyticsState extends Equatable {
     List<MessageModel>? messages,
     AnalyzeModel? analyzeModel,
     TimeWindow? selectedTimeWindow,
+    TimeWindow? selectedHightlightTimeWindow,
     List<SoldItemSummaryModel>? topSellers,
     Map<ItemCategory, QuantiyValueModel>? quantityValueByCategory,
   }) {
@@ -44,6 +47,8 @@ class AnalyticsState extends Equatable {
       messages: messages ?? this.messages,
       message: message ?? this.message,
       selectedTimeWindow: selectedTimeWindow ?? this.selectedTimeWindow,
+      selectedHightlightTimeWindow:
+          selectedHightlightTimeWindow ?? this.selectedHightlightTimeWindow,
       topSellers: topSellers ?? this.topSellers,
       quantityValueByCategory:
           quantityValueByCategory ?? this.quantityValueByCategory,
@@ -59,6 +64,7 @@ class AnalyticsState extends Equatable {
     message,
     analyzeModel,
     selectedTimeWindow,
+    selectedHightlightTimeWindow,
     topSellers,
     quantityValueByCategory,
   ];
