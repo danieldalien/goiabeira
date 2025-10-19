@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// A Material-3 aware text-field with
+/// A Material-3 aware text-field with:
 /// – custom input formatters
 /// – dynamic border colour on focus
 /// – optional always-visible label
+/// – optional trailing camera button (M3 filled-tonal)
 class CustomFormattedTextField extends StatefulWidget {
   const CustomFormattedTextField({
     super.key,
@@ -29,6 +30,12 @@ class CustomFormattedTextField extends StatefulWidget {
     this.initialValue,
     this.minLines = 1,
     this.maxLines,
+
+    // NEW (all optional)
+    this.showCameraButton = false,
+    this.onCameraTap,
+    this.cameraTooltip = 'Scan with camera',
+    this.cameraIcon = Icons.photo_camera,
   });
 
   final TextEditingController? controller;
@@ -61,6 +68,12 @@ class CustomFormattedTextField extends StatefulWidget {
   final int minLines;
   final int? maxLines;
 
+  // camera (optional)
+  final bool showCameraButton;
+  final VoidCallback? onCameraTap;
+  final String cameraTooltip;
+  final IconData cameraIcon;
+
   @override
   State<CustomFormattedTextField> createState() =>
       _CustomFormattedTextFieldState();
@@ -72,12 +85,61 @@ class _CustomFormattedTextFieldState extends State<CustomFormattedTextField> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final radius = BorderRadius.circular(12); // M3 medium radius
 
     // Fallback colours that respect the active theme
     final focusColour = widget.focusedBorderColor ?? scheme.primary;
     final unfocusedColour = widget.unfocusedBorderColor ?? scheme.outline;
+
+    // Build a default suffix (camera) only if caller didn't provide one.
+    final Widget? defaultSuffix =
+        (widget.showCameraButton)
+            ? Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: IconButton.filledTonal(
+                tooltip: widget.cameraTooltip,
+                onPressed: widget.onCameraTap, // may be null → disabled
+                icon: Icon(widget.cameraIcon),
+              ),
+            )
+            : null;
+
+    final baseDecoration = InputDecoration(
+      filled: true,
+      fillColor: scheme.surfaceContainer, // spec default
+      labelText: widget.labelText,
+      labelStyle: widget.labelTextStyle,
+      floatingLabelStyle:
+          widget.floatingLabelStyle ?? TextStyle(color: focusColour),
+      floatingLabelBehavior:
+          widget.showLabelAlways
+              ? FloatingLabelBehavior.always
+              : FloatingLabelBehavior.auto,
+      hintText: widget.hintText,
+      hintStyle:
+          widget.hintTextStyle ?? TextStyle(color: scheme.onSurfaceVariant),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: radius,
+        borderSide: BorderSide(color: unfocusedColour),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: radius,
+        borderSide: BorderSide(color: focusColour, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: radius,
+        borderSide: BorderSide(color: scheme.error),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: radius,
+        borderSide: BorderSide(color: scheme.error, width: 2),
+      ),
+      // only use our default suffix if caller hasn't supplied one
+      suffixIcon: widget.decoration?.suffixIcon ?? defaultSuffix,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    );
 
     return TextFormField(
       controller: _ctrl,
@@ -93,39 +155,20 @@ class _CustomFormattedTextFieldState extends State<CustomFormattedTextField> {
       style: widget.textStyle,
       textInputAction: TextInputAction.done,
       decoration:
-          widget.decoration ??
-          InputDecoration(
-            filled: true,
-            fillColor: scheme.surfaceContainer, // spec default
-            labelText: widget.labelText,
-            labelStyle: widget.labelTextStyle,
-            floatingLabelStyle:
-                widget.floatingLabelStyle ?? TextStyle(color: focusColour),
-            floatingLabelBehavior:
-                widget.showLabelAlways
-                    ? FloatingLabelBehavior.always
-                    : FloatingLabelBehavior.auto,
-            hintText: widget.hintText,
-            hintStyle:
-                widget.hintTextStyle ??
-                TextStyle(color: scheme.onSurfaceVariant),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: radius,
-              borderSide: BorderSide(color: unfocusedColour),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: radius,
-              borderSide: BorderSide(color: focusColour, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: radius,
-              borderSide: BorderSide(color: scheme.error),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: radius,
-              borderSide: BorderSide(color: scheme.error, width: 2),
-            ),
-          ),
+          (widget.decoration == null)
+              ? baseDecoration
+              : baseDecoration.copyWith(
+                // preserve any custom fields the caller set explicitly
+                prefixIcon: widget.decoration!.prefixIcon,
+                suffixIcon:
+                    widget.decoration!.suffixIcon ?? baseDecoration.suffixIcon,
+                helperText: widget.decoration!.helperText,
+                errorText: widget.decoration!.errorText,
+                hintText:
+                    widget.decoration!.hintText ?? baseDecoration.hintText,
+                labelText:
+                    widget.decoration!.labelText ?? baseDecoration.labelText,
+              ),
     );
   }
 }

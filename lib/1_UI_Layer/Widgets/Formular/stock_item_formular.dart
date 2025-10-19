@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:goiabeira/1_UI_Layer/Widgets/Formular/Stock_Item/barcode_input.dart';
 import 'package:goiabeira/1_UI_Layer/Widgets/General/dropdown_widget.dart';
 import 'package:goiabeira/4_Data_Layer/Model/item_category.dart';
 import 'package:goiabeira/4_Data_Layer/Model/stock_item.dart';
-import 'package:goiabeira/0_Core/Enums/enum_item_category.dart';
 import 'package:goiabeira/1_UI_Layer/Widgets/image_picker_widget.dart';
 import 'package:goiabeira/1_UI_Layer/Widgets/Formular/Stock_Item/title_input.dart';
 import 'package:goiabeira/1_UI_Layer/Widgets/Formular/Stock_Item/description_input.dart';
@@ -37,6 +37,7 @@ class _StockItemFormularState extends State<StockItemFormular> {
   final _sellC = TextEditingController();
   final _qtyC = TextEditingController();
   final _supplierC = TextEditingController();
+  final _barcodeC = TextEditingController();
 
   /* ─────────────────────────── state ─────────────────────────── */
   ItemCategory? _category;
@@ -55,6 +56,7 @@ class _StockItemFormularState extends State<StockItemFormular> {
       _buyC.text = s.buyPrice.toString();
       _sellC.text = s.sellPrice.toString();
       _qtyC.text = s.quantity.toString();
+      _barcodeC.text = s.barcodeSupplier;
       _supplierC.text = s.idSupplier;
       _imageList.addAll(s.imageList);
       _imageFiles.addAll(s.imageFiles.cast<File>());
@@ -97,51 +99,50 @@ class _StockItemFormularState extends State<StockItemFormular> {
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
+              spacing: 16,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _Header(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
 
                 /* ── fields ── */
                 TitleInput(
                   onChanged: (v) => _titleC.text = v,
                   initialValue: _titleC.text,
                 ),
-                const SizedBox(height: 16),
                 DescriptionInput(
                   onChanged: (v) => _descC.text = v,
                   initialValue: _descC.text,
                 ),
-                const SizedBox(height: 16),
                 DropdownWidget(
                   labelText: 'Category',
                   items: _getCategories(widget.itemsCategory),
                   initialItem: _getCategories(widget.itemsCategory).first,
                   onSelected: _onCategorySelected,
                 ),
-                const SizedBox(height: 16),
                 PriceInput(
                   labelText: 'Buy price',
                   onChanged: (v) => _buyC.text = v,
                   initialValue: _buyC.text,
                 ),
-                const SizedBox(height: 16),
                 PriceInput(
                   labelText: 'Sell price',
                   onChanged: (v) => _sellC.text = v,
                   initialValue: _sellC.text,
                 ),
-                const SizedBox(height: 16),
                 QuantityInput(
                   onChanged: (v) => _qtyC.text = v,
                   initialValue: _qtyC.text,
                 ),
-                const SizedBox(height: 16),
                 SupplierIdInput(
                   onChanged: (v) => _supplierC.text = v,
                   initialValue: _supplierC.text,
                 ),
-                const SizedBox(height: 24),
+                BarcodeInput(
+                  onChanged: _barcodeChanged,
+                  initialValue: _barcodeC.text,
+                ),
+                const SizedBox(height: 8),
 
                 _ImagePickerCard(
                   imageFiles: _imageFiles,
@@ -168,6 +169,10 @@ class _StockItemFormularState extends State<StockItemFormular> {
     );
   }
 
+  void _barcodeChanged(String value) {
+    _barcodeC.text = value;
+  }
+
   /* ─────────────────────────── handlers ─────────────────────────── */
   void _save() {
     try {
@@ -181,6 +186,7 @@ class _StockItemFormularState extends State<StockItemFormular> {
         idSupplier: _supplierC.text,
         quantity: int.parse(_qtyC.text),
         imageFiles: _imageFiles,
+        barcodeSupplier: _barcodeC.text,
       );
       widget.onSubmitted(item);
     } catch (_) {
