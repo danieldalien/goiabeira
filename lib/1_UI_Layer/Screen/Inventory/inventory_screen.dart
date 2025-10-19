@@ -6,9 +6,8 @@ import 'package:goiabeira/1_UI_Layer/Screen/Inventory/sell_item_formular.dart';
 import 'package:goiabeira/1_UI_Layer/Screen/Inventory/sell_item_formular_old.dart';
 import 'package:goiabeira/1_UI_Layer/Screen/Inventory/stock_item_formular_screen.dart';
 import 'package:goiabeira/1_UI_Layer/Widgets/General/custom_snack_bars_class.dart';
-import 'package:goiabeira/1_UI_Layer/Widgets/General/search_field_widget_old.dart';
+import 'package:goiabeira/1_UI_Layer/Widgets/barcode_scanner_widget.dart';
 import 'package:goiabeira/1_UI_Layer/Widgets/search_field_widget.dart';
-import 'package:goiabeira/1_UI_Layer/Widgets/stock_item_card.dart';
 import 'package:goiabeira/1_UI_Layer/Widgets/stock_item_card_v2.dart';
 import 'package:goiabeira/2_State_layer/inventory/inventory_bloc.dart';
 import 'package:goiabeira/2_State_layer/sold_inventory/sold_inventory_bloc.dart';
@@ -32,7 +31,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   @override
   void initState() {
-    print('InventoryScreen initState');
     super.initState();
     // Trigger the initial inventory load.
     context.read<InventoryBloc>().add(InventoryInitial());
@@ -40,7 +38,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   @override
   void dispose() {
-    print('InventoryScreen dispose');
     _searchFieldListController.dispose();
     super.dispose();
   }
@@ -256,6 +253,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 ),
                 child: SearchFieldWidget(
                   controller: _searchFieldListController,
+                  onScanRequest: (context) => _onCameraTap(),
                 ),
               ),
               Expanded(
@@ -300,7 +298,20 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return stockItem.where((stockItem) {
       return stockItem.title.toLowerCase().contains(lowerCaseQuery) ||
           stockItem.category.name.toLowerCase().contains(lowerCaseQuery) ||
+          stockItem.barcodeSupplier.toLowerCase().contains(lowerCaseQuery) ||
           stockItem.id.toString().toLowerCase().contains(lowerCaseQuery);
     }).toList();
+  }
+
+  Future<String?> _onCameraTap() async {
+    FocusScope.of(context).unfocus();
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    if (!mounted) return null;
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const BarcodeScannerPage()),
+    );
+    return result;
   }
 }
