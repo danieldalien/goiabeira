@@ -5,7 +5,7 @@ import 'package:goiabeira/4_Data_Layer/Model/client_model.dart';
 import 'package:goiabeira/4_Data_Layer/Model/stock_item.dart';
 
 class SoldItem {
-  final int idSoldItem;
+  final int id;
   final StockItem stockItem;
   final double sellPrice;
   final int quantitySold;
@@ -14,14 +14,14 @@ class SoldItem {
   double discount;
 
   SoldItem({
-    int? idSoldItem,
+    int? id,
     required this.stockItem,
     required this.sellPrice,
     required this.quantitySold,
     required this.client,
     DateTime? sellDate,
     this.discount = 0.0,
-  }) : idSoldItem = idSoldItem ?? DateTime.now().millisecondsSinceEpoch,
+  }) : id = id ?? DateTime.now().millisecondsSinceEpoch,
        sellDate = sellDate ?? DateTime.now();
 
   double get profit {
@@ -33,7 +33,7 @@ class SoldItem {
   // Named constructor with initializing formals
   Map<String, dynamic> toJson() {
     return {
-      'idSoldItem': idSoldItem,
+      'id': id,
       'stockItem': stockItem.toJson(),
       'sellPrice': sellPrice,
       'quantitySold': quantitySold,
@@ -46,17 +46,14 @@ class SoldItem {
   // Named constructor with initializing formals
   static Map<String, dynamic> toMap(SoldItem soldItem) {
     return {
-      'id': soldItem.stockItem.id,
+      'id': soldItem.id,
       'title': soldItem.stockItem.title,
       'description': soldItem.stockItem.description,
       'buyPrice': soldItem.stockItem.buyPrice,
       'sellPrice': soldItem.stockItem.sellPrice,
-      'idSoldItem': soldItem.idSoldItem,
+      'idStockItem': soldItem.stockItem.id,
       'category': soldItem.stockItem.category.name,
-      'imageList':
-          soldItem.stockItem.imageList.isEmpty
-              ? ['']
-              : jsonEncode(soldItem.stockItem.imageList),
+      'imageList': jsonEncode(soldItem.stockItem.imageList),
       'idSupplier': soldItem.stockItem.idSupplier,
       'barcodeArticel': soldItem.stockItem.barcodeArticel,
       'barcodeSupplier': soldItem.stockItem.barcodeSupplier,
@@ -65,6 +62,32 @@ class SoldItem {
       'sellPriceReal': soldItem.sellPrice,
       'sellDate': soldItem.sellDate.toString(), // '2021-10-10 10:10:10.000
       'customerId': soldItem.client.id,
+      'createdAt': soldItem.stockItem.createdAt.toIso8601String(),
+    };
+  }
+
+  static Map<String, dynamic> toCsv(SoldItem soldItem) {
+    return {
+      'id': soldItem.id,
+      'title': soldItem.stockItem.title,
+      'description': soldItem.stockItem.description,
+      'buyPrice': soldItem.stockItem.buyPrice,
+      'sellPrice': soldItem.stockItem.sellPrice,
+      'idStockItem': soldItem.stockItem.id,
+      'category': soldItem.stockItem.category.name,
+      'idSupplier': soldItem.stockItem.idSupplier,
+      'barcodeArticel': soldItem.stockItem.barcodeArticel,
+      'barcodeSupplier': soldItem.stockItem.barcodeSupplier,
+      'quantity': soldItem.stockItem.quantity,
+      'quantitySold': soldItem.quantitySold,
+      'sellPriceReal': soldItem.sellPrice,
+      'sellDate': soldItem.sellDate.toString(), // '2021-10-10 10:10:10.000
+      'clientName': soldItem.client.name,
+      'clientId': soldItem.client.id,
+      'clientEmail': soldItem.client.email,
+      'clientPhone': soldItem.client.phone,
+      'discount': soldItem.discount,
+      'createdAt': soldItem.stockItem.createdAt.toIso8601String(),
     };
   }
 
@@ -86,8 +109,8 @@ class SoldItem {
         NumberManipulation.numberToInt(json['quantitySold']) ?? 0;
 
     return SoldItem(
-      idSoldItem: int.parse(json['idSoldItem']),
-      stockItem: StockItem.fromJson(json),
+      id: int.parse(json['id']),
+      stockItem: StockItem.fromJson(json, fromSoldItem: true),
       sellPrice: sellPriceReal,
       quantitySold: quantitySold,
       sellDate: DateTime.parse(json['sellDate']),
@@ -106,7 +129,7 @@ class SoldItem {
     double? discount,
   }) {
     return SoldItem(
-      idSoldItem: idSoldItem ?? this.idSoldItem,
+      id: idSoldItem ?? this.id,
       stockItem: stockItem ?? this.stockItem,
       sellPrice: sellPrice ?? this.sellPrice,
       quantitySold: quantitySold ?? this.quantitySold,

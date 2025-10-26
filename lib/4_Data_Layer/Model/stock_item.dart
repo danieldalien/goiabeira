@@ -1,16 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:goiabeira/0_Core/Enums/enum_item_category.dart';
 import 'package:goiabeira/0_Core/Utility/number_manipulation.dart';
+import 'package:goiabeira/4_Data_Layer/Model/item_category.dart';
 
 class StockItem {
   final String title;
   final String description;
   final double buyPrice;
   final double sellPrice;
-  final StockItemCategoryEnum category;
+  final ItemCategory category;
   final List<String> imageList;
   final int id;
   final String idSupplier;
@@ -18,6 +18,7 @@ class StockItem {
   final String barcodeSupplier;
   final int quantity;
   List<File?> imageFiles = [];
+  final DateTime createdAt;
 
   StockItem({
     required this.title,
@@ -31,6 +32,7 @@ class StockItem {
     required this.barcodeArticel,
     required this.barcodeSupplier,
     required this.quantity,
+    required this.createdAt,
     this.imageFiles = const [],
   });
 
@@ -47,6 +49,7 @@ class StockItem {
     required this.barcodeArticel,
     required this.barcodeSupplier,
     required this.quantity,
+    required this.createdAt,
     this.imageFiles = const [],
   });
 
@@ -55,13 +58,14 @@ class StockItem {
       description = '',
       buyPrice = 0.0,
       sellPrice = 0.0,
-      category = StockItemCategoryEnum.none,
+      category = ItemCategory.empty(),
       imageList = [],
       id = DateTime.now().millisecondsSinceEpoch,
       idSupplier = '',
       barcodeArticel = '',
       barcodeSupplier = '',
       quantity = 0,
+      createdAt = DateTime.now(),
       imageFiles = [];
 
   StockItem.test()
@@ -69,13 +73,14 @@ class StockItem {
       description = 'Test',
       buyPrice = 0.0,
       sellPrice = 0.0,
-      category = StockItemCategoryEnum.none,
+      category = ItemCategory.empty(),
       imageList = [],
       id = DateTime.now().millisecondsSinceEpoch,
       idSupplier = 'Test',
       barcodeArticel = 'Test',
       barcodeSupplier = 'Test',
       quantity = 0,
+      createdAt = DateTime.now(),
       imageFiles = [];
 
   Map<String, dynamic> toJson() {
@@ -84,13 +89,14 @@ class StockItem {
       'description': description,
       'buyPrice': buyPrice,
       'sellPrice': sellPrice,
-      'category': category.name,
-      'imageList': imageList.isEmpty ? [''] : jsonEncode(imageList),
+      'category': category.toJson(),
+      'imageList': jsonEncode(imageList),
       'id': id,
       'idSupplier': idSupplier,
       'barcodeArticel': barcodeArticel,
       'barcodeSupplier': barcodeSupplier,
       'quantity': quantity,
+      'createdAt': createdAt.toIso8601String(),
     };
   }
 
@@ -101,17 +107,36 @@ class StockItem {
       'buyPrice': stockItem.buyPrice,
       'sellPrice': stockItem.sellPrice,
       'category': stockItem.category.name,
-      'imageList':
-          stockItem.imageList.isEmpty ? [''] : jsonEncode(stockItem.imageList),
+      'imageList': jsonEncode(stockItem.imageList),
       'id': stockItem.id,
       'idSupplier': stockItem.idSupplier,
       'barcodeArticel': stockItem.barcodeArticel,
       'barcodeSupplier': stockItem.barcodeSupplier,
       'quantity': stockItem.quantity,
+      'createdAt': stockItem.createdAt.toIso8601String(),
     };
   }
 
-  factory StockItem.fromJson(Map<String, dynamic> json) {
+  static Map<String, dynamic> toCsv(StockItem stockItem) {
+    return {
+      'title': stockItem.title,
+      'description': stockItem.description,
+      'buyPrice': stockItem.buyPrice,
+      'sellPrice': stockItem.sellPrice,
+      'category': stockItem.category.name,
+      'id': stockItem.id,
+      'idSupplier': stockItem.idSupplier,
+      'barcodeArticel': stockItem.barcodeArticel,
+      'barcodeSupplier': stockItem.barcodeSupplier,
+      'quantity': stockItem.quantity,
+      'createdAt': stockItem.createdAt.toIso8601String(),
+    };
+  }
+
+  factory StockItem.fromJson(
+    Map<String, dynamic> json, {
+    bool fromSoldItem = false,
+  }) {
     // Processing imageList to remove extra single quotes from URLs
     List<String> cleanedImageList = [];
     if (json['imageList'].runtimeType == String) {
@@ -151,9 +176,16 @@ class StockItem {
       description: json['description'],
       buyPrice: buyPrice,
       sellPrice: sellPrice,
-      category: stringToStockItemCategoryEnum(json['category']),
+      category: ItemCategory.fromString(json['category']),
+      createdAt: DateTime.parse(json['createdAt']),
       imageList: cleanedImageList, // Use the cleaned image list
-      id: NumberManipulation.numberToInt(json['id']) ?? 0,
+
+      id:
+          !fromSoldItem
+              ? NumberManipulation.numberToInt(json['id']) ??
+                  DateTime.now().millisecondsSinceEpoch
+              : NumberManipulation.numberToInt(json['idStockItem']) ??
+                  DateTime.now().millisecondsSinceEpoch,
       idSupplier: json['idSupplier'],
       barcodeArticel: json['barcodeArticel'],
       barcodeSupplier: json['barcodeSupplier'],
@@ -166,13 +198,14 @@ class StockItem {
     String? description,
     double? buyPrice,
     double? sellPrice,
-    StockItemCategoryEnum? category,
+    ItemCategory? category,
     List<String>? imageList,
     int? id,
     String? idSupplier,
     String? barcodeArticel,
     String? barcodeSupplier,
     int? quantity,
+    DateTime? createdAt,
     List<File?>? imageFiles,
   }) {
     return StockItem(
@@ -187,6 +220,7 @@ class StockItem {
       barcodeArticel: barcodeArticel ?? this.barcodeArticel,
       barcodeSupplier: barcodeSupplier ?? this.barcodeSupplier,
       quantity: quantity ?? this.quantity,
+      createdAt: createdAt ?? this.createdAt,
       imageFiles: imageFiles ?? this.imageFiles,
     );
   }

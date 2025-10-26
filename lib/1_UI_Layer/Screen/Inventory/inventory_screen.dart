@@ -6,12 +6,12 @@ import 'package:goiabeira/1_UI_Layer/Screen/Inventory/sell_item_formular.dart';
 import 'package:goiabeira/1_UI_Layer/Screen/Inventory/sell_item_formular_old.dart';
 import 'package:goiabeira/1_UI_Layer/Screen/Inventory/stock_item_formular_screen.dart';
 import 'package:goiabeira/1_UI_Layer/Widgets/General/custom_snack_bars_class.dart';
-import 'package:goiabeira/1_UI_Layer/Widgets/General/search_field_widget_old.dart';
+import 'package:goiabeira/1_UI_Layer/Widgets/barcode_scanner_widget.dart';
 import 'package:goiabeira/1_UI_Layer/Widgets/search_field_widget.dart';
-import 'package:goiabeira/1_UI_Layer/Widgets/stock_item_card.dart';
 import 'package:goiabeira/1_UI_Layer/Widgets/stock_item_card_v2.dart';
 import 'package:goiabeira/2_State_layer/inventory/inventory_bloc.dart';
 import 'package:goiabeira/2_State_layer/sold_inventory/sold_inventory_bloc.dart';
+import 'package:goiabeira/4_Data_Layer/Model/item_category.dart';
 import 'package:goiabeira/4_Data_Layer/Model/sold_item.dart';
 import 'package:goiabeira/4_Data_Layer/Model/stock_item.dart';
 
@@ -31,7 +31,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   @override
   void initState() {
-    print('InventoryScreen initState');
     super.initState();
     // Trigger the initial inventory load.
     context.read<InventoryBloc>().add(InventoryInitial());
@@ -39,7 +38,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   @override
   void dispose() {
-    print('InventoryScreen dispose');
     _searchFieldListController.dispose();
     super.dispose();
   }
@@ -76,7 +74,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
       listener: _screenListener,
       child: Stack(
         children: [
-          _buildCurrentScreen(),
+          BlocBuilder<InventoryBloc, InventoryState>(
+            builder: (context, state) {
+              return _buildCurrentScreen(state.itemCategories);
+            },
+          ),
           Positioned(
             right: 10,
             bottom: 10,
@@ -102,7 +104,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   /// Handles the sell action by dispatching the sell event.
   void _sellItem(SoldItem item) {
     print(
-      '1. Selling item: ${item.stockItem.title} : with Stock_ID ${item.stockItem.id} , SELL_ID: ${item.idSoldItem}',
+      '1. Selling item: ${item.stockItem.title} : with Stock_ID ${item.stockItem.id} , SELL_ID: ${item.id}',
     );
 
     context.read<InventoryBloc>().add(SellStockItem(item));
@@ -127,7 +129,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   /// Callback for when the stock item form is submitted.
-  void _onSubmitted(BuildContext context, StockItem stockItem) {
+  void _onCreateStockItem(BuildContext context, StockItem stockItem) {
     context.read<InventoryBloc>().add(CreateStockItem(stockItem));
   }
 
@@ -137,17 +139,21 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   /// Determines which screen to display: the inventory list or the stock item form.
-  Widget _buildCurrentScreen() {
+  Widget _buildCurrentScreen(List<ItemCategory> itemCategories) {
     return _isFormular
-        ? _buildFormularScreen(_selectedStockItem)
+        ? _buildFormularScreen(_selectedStockItem, itemCategories)
         : _buildInventoryScreen();
   }
 
   /// Builds the stock item form screen.
-  Widget _buildFormularScreen(StockItem? stockItem) {
+  Widget _buildFormularScreen(
+    StockItem? stockItem,
+    List<ItemCategory> itemCategories,
+  ) {
     return StockItemFormularScreen(
       stockItem: stockItem,
-      onSubmitted: _onSubmitted,
+      itemCategories: itemCategories,
+      onSubmitted: _onCreateStockItem,
       onDelete: _onDelete,
     );
   }
@@ -247,6 +253,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 ),
                 child: SearchFieldWidget(
                   controller: _searchFieldListController,
+                  onScanRequest: (context) => _onCameraTap(),
                 ),
               ),
               Expanded(
@@ -291,7 +298,20 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return stockItem.where((stockItem) {
       return stockItem.title.toLowerCase().contains(lowerCaseQuery) ||
           stockItem.category.name.toLowerCase().contains(lowerCaseQuery) ||
+          stockItem.barcodeSupplier.toLowerCase().contains(lowerCaseQuery) ||
           stockItem.id.toString().toLowerCase().contains(lowerCaseQuery);
     }).toList();
+  }
+
+  Future<String?> _onCameraTap() async {
+    FocusScope.of(context).unfocus();
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    if (!mounted) return null;
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const BarcodeScannerPage()),
+    );
+    return result;
   }
 }

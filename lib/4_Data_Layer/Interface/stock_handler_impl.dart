@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:goiabeira/3_Domain_Layer/Interface/stock_handler_interface.dart';
 import 'package:goiabeira/3_Domain_Layer/Repo/database_repo.dart';
 import 'package:goiabeira/3_Domain_Layer/Repo/file_storage_repo.dart';
+import 'package:goiabeira/4_Data_Layer/Model/item_category.dart';
 import 'package:goiabeira/4_Data_Layer/Model/stock_item.dart';
 
 class StockHandlerImpl implements StockHandlerInterface {
@@ -12,6 +14,9 @@ class StockHandlerImpl implements StockHandlerInterface {
   final DatabaseRepository<StockItem> repository;
   @override
   final FileStorageRepo fileStorageRepository;
+
+  // Broadcast so multiple listeners can subscribe (UI, background, etc.)
+  final _stockItemBroadcast = StreamController<List<StockItem>>.broadcast();
 
   /*
   static const stockItemTable = {
@@ -37,6 +42,14 @@ class StockHandlerImpl implements StockHandlerInterface {
   });
 
   @override
+  Stream<List<StockItem>> get stockItemStream => _stockItemBroadcast.stream;
+
+  void _emit() {
+    // Emit an immutable snapshot to avoid external mutation.
+    _stockItemBroadcast.add(List.unmodifiable(_stockItems));
+  }
+
+  @override
   Future<List<StockItem>> stockItems() async {
     if (_stockItems.isEmpty) {
       _stockItems = await readAllStockItems();
@@ -47,6 +60,12 @@ class StockHandlerImpl implements StockHandlerInterface {
   @override
   Future<void> init(dynamic db) async {
     await stockItems();
+    _emit();
+  }
+
+  @override
+  Future<void> dispose() async {
+    _stockItemBroadcast.close();
   }
 
   @override
@@ -57,9 +76,13 @@ class StockHandlerImpl implements StockHandlerInterface {
     List<String> imageUrls = await fileStorageRepository.createMultipleFiles(
       stockItem.imageFiles,
     );
+    final saved = stockItem.copyWith(imageList: imageUrls, imageFiles: []);
     try {
-      await repository.create(stockItem.copyWith(imageList: imageUrls));
-      _stockItems.add(stockItem);
+      await repository.create(saved);
+      final files = await downloadImages(imageUrls);
+      final cached = saved.copyWith(imageFiles: files);
+      _stockItems.add(cached);
+      _emit();
     } catch (e) {
       throw Exception('Failed to create stock item');
     }
@@ -128,16 +151,44 @@ class StockHandlerImpl implements StockHandlerInterface {
         'Stock item loaded: ${stockItems[i].title}, ID: ${stockItems[i].id}',
       );
     }
+    _stockItems = stockItems;
+    _emit();
     return stockItems;
   }
 
   @override
   Future<void> sellStockItem(StockItem stockItem, int quantity) async {
-    await repository.update(
-      stockItem.id.toString(),
-      stockItem.copyWith(quantity: stockItem.quantity - quantity),
-    );
+    // Decrement in DB then in cache, then emit
+    final newQty = stockItem.quantity - quantity;
+    if (newQty < 0) {
+      throw StateError(
+        'Not enough stock: have ${stockItem.quantity}, need $quantity',
+      );
+    }
+
+    final updated = stockItem.copyWith(quantity: newQty);
+    await repository.update(stockItem.id.toString(), updated);
+
+    final idx = _stockItems.indexWhere((s) => s.id == stockItem.id);
+    if (idx != -1) {
+      _stockItems[idx] = updated;
+      _emit();
+    }
 
     print('Stock item sold: , quantity: $quantity');
+  }
+
+  @override
+  createCategoryFromString(List<ItemCategory> catergories) {
+    for (var i = 0; i < _stockItems.length; i++) {
+      final s = _stockItems[i];
+      final match = catergories.firstWhere(
+        (c) => c.name == s.category.name,
+        orElse: () => s.category,
+      );
+      if (!identical(match, s.category)) {
+        _stockItems[i] = s.copyWith(category: match);
+      }
+    }
   }
 }

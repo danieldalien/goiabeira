@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:goiabeira/0_Core/Config/app_dependencies.dart';
-import 'package:goiabeira/1_UI_Layer/Screen/main_screen_old.dart';
 import 'package:goiabeira/1_UI_Layer/main_screen.dart';
 import 'package:goiabeira/2_State_layer/analytics/analytics_bloc.dart';
 import 'package:goiabeira/2_State_layer/inventory/inventory_bloc.dart';
+import 'package:goiabeira/2_State_layer/settings/settings_bloc.dart';
 import 'package:goiabeira/2_State_layer/sold_inventory/sold_inventory_bloc.dart';
+import 'package:goiabeira/3_Domain_Layer/Interface/sell_handler_interface.dart';
+import 'package:goiabeira/3_Domain_Layer/Interface/stock_handler_interface.dart';
 import 'package:goiabeira/3_Domain_Layer/Repo/database_repo.dart';
 import 'package:goiabeira/3_Domain_Layer/Repo/file_storage_repo.dart';
 import 'package:goiabeira/4_Data_Layer/Model/item_category.dart';
@@ -13,7 +16,7 @@ import 'package:goiabeira/4_Data_Layer/Model/sold_item.dart';
 import 'package:goiabeira/4_Data_Layer/Model/stock_item.dart';
 import 'package:goiabeira/4_Data_Layer/Repo/local_database_repo.dart';
 import 'package:goiabeira/4_Data_Layer/Repo/local_file_storage_repo.dart';
-import 'package:goiabeira/4_Data_Layer/Service/get_it_service.dart';
+import 'package:goiabeira/4_Data_Layer/Utility/my_csv_exporter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,12 +43,30 @@ void main() async {
     soldItemRepository: soldItemRepository,
     itemCategoryRepository: itemCategoryRepository,
   );
+  final MyCsvExporter myCsvExporter = MyCsvExporter();
+
+  final StockHandlerInterface stockHandler =
+      GetIt.instance<StockHandlerInterface>();
+
+  final SellHandlerInterface sellHandler =
+      GetIt.instance<SellHandlerInterface>();
+
   runApp(
     MultiBlocProvider(
       providers: [
-        BlocProvider(create: (context) => InventoryBloc()),
+        BlocProvider(
+          create: (context) => InventoryBloc(stockHandler, sellHandler),
+        ),
         BlocProvider(create: (context) => SoldInventoryBloc()),
         BlocProvider(create: (context) => AnalyticsBloc()),
+        BlocProvider(
+          create:
+              (context) => SettingsBloc(
+                myCsvExporter: myCsvExporter,
+                stockItemStream: stockHandler.stockItemStream,
+                soldItemStream: sellHandler.soldItemStream,
+              ),
+        ),
       ],
       child: MyApp(),
     ),
@@ -53,7 +74,7 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  static const seed = Color.fromARGB(255, 255, 114, 20);
+  static const seed = Color.fromARGB(255, 255, 20, 122);
 
   static final lightScheme = ColorScheme.fromSeed(
     seedColor: seed,
@@ -97,7 +118,7 @@ class MyApp extends StatelessWidget {
           indicatorColor: darkScheme.primaryContainer,
         ),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Goiabeira Home Page'),
     );
   }
 }

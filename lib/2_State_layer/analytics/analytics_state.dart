@@ -7,6 +7,10 @@ class AnalyticsState extends Equatable {
   final MessageModel message;
   final List<MessageModel> messages;
   final AnalyzeModel analyzeModel;
+  final TimeWindow selectedTimeWindow;
+  final TimeWindow selectedHightlightTimeWindow;
+  final List<SoldItemSummaryModel> topSellers;
+  final Map<ItemCategory, QuantiyValueModel> quantityValueByCategory;
 
   AnalyticsState({
     this.stateTriggered = false,
@@ -14,7 +18,11 @@ class AnalyticsState extends Equatable {
     this.appState = AppState.idle,
     MessageModel? message,
     this.messages = const [],
+    this.selectedTimeWindow = TimeWindow.last30Days,
+    this.selectedHightlightTimeWindow = TimeWindow.last30Days,
     AnalyzeModel? analyzeModel,
+    this.topSellers = const [],
+    this.quantityValueByCategory = const {},
   }) : message = message ?? MessageModel.empty(),
        analyzeModel = analyzeModel ?? AnalyzeModel.empty(),
        super();
@@ -26,6 +34,10 @@ class AnalyticsState extends Equatable {
     MessageModel? message,
     List<MessageModel>? messages,
     AnalyzeModel? analyzeModel,
+    TimeWindow? selectedTimeWindow,
+    TimeWindow? selectedHightlightTimeWindow,
+    List<SoldItemSummaryModel>? topSellers,
+    Map<ItemCategory, QuantiyValueModel>? quantityValueByCategory,
   }) {
     return AnalyticsState(
       stateTriggered: stateTriggered ?? this.stateTriggered,
@@ -34,6 +46,12 @@ class AnalyticsState extends Equatable {
       analyzeModel: analyzeModel ?? this.analyzeModel,
       messages: messages ?? this.messages,
       message: message ?? this.message,
+      selectedTimeWindow: selectedTimeWindow ?? this.selectedTimeWindow,
+      selectedHightlightTimeWindow:
+          selectedHightlightTimeWindow ?? this.selectedHightlightTimeWindow,
+      topSellers: topSellers ?? this.topSellers,
+      quantityValueByCategory:
+          quantityValueByCategory ?? this.quantityValueByCategory,
     );
   }
 
@@ -45,5 +63,9 @@ class AnalyticsState extends Equatable {
     messages,
     message,
     analyzeModel,
+    selectedTimeWindow,
+    selectedHightlightTimeWindow,
+    topSellers,
+    quantityValueByCategory,
   ];
 }

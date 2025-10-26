@@ -1,12 +1,15 @@
 import 'package:goiabeira/0_Core/Enums/date_granularity.dart';
 import 'package:goiabeira/0_Core/Enums/enum_item_category.dart';
+import 'package:goiabeira/0_Core/Enums/time_window.dart';
+import 'package:goiabeira/4_Data_Layer/Model/item_category.dart';
 import 'package:goiabeira/4_Data_Layer/Model/sold_inventory_summary_model.dart';
 import 'package:goiabeira/4_Data_Layer/Model/sold_item.dart';
 import 'package:goiabeira/4_Data_Layer/Model/sold_item_summary_model.dart';
 
 class SoldItemService {
-  final List<SoldItem> soldItems;
-  SoldItemService({required this.soldItems});
+  List<SoldItem> _soldItems;
+  SoldItemService({required List<SoldItem> soldItems})
+    : _soldItems = List.unmodifiable(soldItems);
 
   List<SoldItemSummaryModel> _dailySoldItemsSummary = [];
   List<SoldItemSummaryModel> _weeklySoldItemsSummary = [];
@@ -14,8 +17,7 @@ class SoldItemService {
   List<SoldItemSummaryModel> _yearlySoldItemsSummary = [];
 
   void updateSoldItems(List<SoldItem> newSoldItems) {
-    soldItems.clear();
-    soldItems.addAll(newSoldItems);
+    _soldItems = List.unmodifiable(newSoldItems);
   }
 
   List<SoldItemSummaryModel> getSoldItemsSummary({
@@ -38,15 +40,15 @@ class SoldItemService {
 
   List<SoldItemSummaryModel> getDailySoldItemsSummary(int id) {
     List<SoldItem> filtered =
-        soldItems.where((si) => si.stockItem.id == id).toList();
+        _soldItems.where((si) => si.stockItem.id == id).toList();
     // Implement logic to get daily sold items summary
     List<SoldItemSummaryModel> dailySummary = [];
     double totalRevenue = 0.0;
     double totalProfit = 0.0;
     int soldQuantity = 0;
     DateTime lastDate = DateTime.now();
-    for (int i = 0; i < soldItems.length; i++) {
-      SoldItem item = soldItems[i];
+    for (int i = 0; i < _soldItems.length; i++) {
+      SoldItem item = _soldItems[i];
 
       if (i == 0) {
         lastDate = item.sellDate;
@@ -62,11 +64,13 @@ class SoldItemService {
       } else {
         dailySummary.add(
           SoldItemSummaryModel(
-            id: item.stockItem.id,
+            soldItem: item,
             soldQuantity: soldQuantity,
             totalRevenue: totalRevenue,
             totalProfit: totalProfit,
-            timeGranularity: DateGranularity.day,
+            timeWindow: TimeWindow.today,
+            marginPercent:
+                totalRevenue != 0 ? (totalProfit / totalRevenue) * 100 : 0.0,
           ),
         );
         // Reset for the next day
@@ -99,11 +103,11 @@ class SoldItemService {
   }
 
   List<SoldItem> getSoldItemsById(int id) {
-    return soldItems.where((item) => item.stockItem.id == id).toList();
+    return _soldItems.where((item) => item.stockItem.id == id).toList();
   }
 
   List<SoldItem> getSoldItemsByDate(DateTime date) {
-    return soldItems
+    return _soldItems
         .where(
           (item) =>
               item.sellDate.day == date.day &&
@@ -114,33 +118,33 @@ class SoldItemService {
   }
 
   List<SoldItem> getSoldItemsByDateRange(DateTime start, DateTime end) {
-    return soldItems.where((item) {
+    return _soldItems.where((item) {
       return item.sellDate.isAfter(start) && item.sellDate.isBefore(end);
     }).toList();
   }
 
-  List<SoldItem> getSoldItemsByCategory(StockItemCategoryEnum category) {
-    return soldItems
+  List<SoldItem> getSoldItemsByCategory(ItemCategory category) {
+    return _soldItems
         .where((item) => item.stockItem.category == category)
         .toList();
   }
 
   List<double> getProfitForItem(int id) {
-    return soldItems
+    return _soldItems
         .where((item) => item.stockItem.id == id)
         .map((item) => item.profit * item.quantitySold)
         .toList();
   }
 
   List<double> getRevenueForItem(int id) {
-    return soldItems
+    return _soldItems
         .where((item) => item.stockItem.id == id)
         .map((item) => item.sellPrice * item.quantitySold)
         .toList();
   }
 
   List<double> getQuantityForItem(int id) {
-    return soldItems
+    return _soldItems
         .where((item) => item.stockItem.id == id)
         .map((item) => item.quantitySold.toDouble())
         .toList();
@@ -149,7 +153,7 @@ class SoldItemService {
   List<SoldInventorySummaryModel> getInventorySummaryByItem() {
     final Map<int, SoldInventorySummaryModel> summaryMap = {};
 
-    for (final item in soldItems) {
+    for (final item in _soldItems) {
       final key = item.stockItem.id;
       print(key);
 
@@ -187,7 +191,7 @@ class SoldItemService {
   List<SoldInventorySummaryModel> getInventorySummaryByDate() {
     final Map<String, SoldInventorySummaryModel> summaryMap = {};
 
-    for (final item in soldItems) {
+    for (final item in _soldItems) {
       final key =
           '${item.sellDate.year}-${item.sellDate.month}-${item.sellDate.day}';
 
@@ -216,9 +220,9 @@ class SoldItemService {
   }
 
   List<SoldInventorySummaryModel> getInventorySummaryByCategory() {
-    final Map<StockItemCategoryEnum, SoldInventorySummaryModel> summaryMap = {};
+    final Map<ItemCategory, SoldInventorySummaryModel> summaryMap = {};
 
-    for (final item in soldItems) {
+    for (final item in _soldItems) {
       final key = item.stockItem.category;
 
       if (summaryMap.containsKey(key)) {

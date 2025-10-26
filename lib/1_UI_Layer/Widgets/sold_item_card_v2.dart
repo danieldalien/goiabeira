@@ -13,11 +13,13 @@ import 'package:goiabeira/4_Data_Layer/Model/sold_inventory_summary_model.dart';
 class SoldBaseInventoryCard extends StatelessWidget {
   final SoldInventorySummaryModel summaryModel;
   final ValueChanged<String> onTap;
+  final Function(String)? onLongPress;
 
   const SoldBaseInventoryCard({
     super.key,
     required this.summaryModel,
     required this.onTap,
+    this.onLongPress,
   });
 
   /* ────────────────────── build ────────────────────── */
@@ -35,6 +37,7 @@ class SoldBaseInventoryCard extends StatelessWidget {
       child: InkWell(
         // ripple inside rounded card
         onTap: () => onTap(summaryModel.id),
+        onLongPress: () => onLongPress?.call(summaryModel.id),
         child: ListTile(
           contentPadding: const EdgeInsets.all(12),
           leading: _Thumbnail(

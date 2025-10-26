@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:goiabeira/1_UI_Layer/Widgets/sold_item_card.dart';
 import 'package:goiabeira/1_UI_Layer/Widgets/sold_item_card_v2.dart';
+import 'package:goiabeira/1_UI_Layer/Screen/Inventory/sell_item_formular.dart';
 import 'package:goiabeira/2_State_layer/sold_inventory/sold_inventory_bloc.dart';
 import 'package:goiabeira/4_Data_Layer/Model/sold_inventory_summary_model.dart';
 import 'package:goiabeira/4_Data_Layer/Model/sold_item.dart';
@@ -74,10 +75,10 @@ class _SoldInventoryScreenState extends State<SoldInventoryScreen> {
         return SoldItemCard(
           soldItem: soldItems[index],
           onEdit: () {
-            // TODO: Implement edit functionality
+            _onEditSoldItem(soldItems[index]);
           },
           onDelete: () {
-            _onDeleteSoldItem(soldItems[index]);
+            // _onDeleteSoldItem(soldItems[index]);
           },
           onViewDetails: () {
             // TODO: Implement view details functionality
@@ -109,7 +110,13 @@ class _SoldInventoryScreenState extends State<SoldInventoryScreen> {
   Widget _buildInventoryCard({
     required SoldInventorySummaryModel summaryModel,
   }) {
-    return SoldBaseInventoryCard(summaryModel: summaryModel, onTap: (id) {});
+    return SoldBaseInventoryCard(
+      summaryModel: summaryModel,
+      onTap: (id) {},
+      onLongPress: (id) {
+        _onDeleteSoldItem(id);
+      },
+    );
   }
 
   Widget _buildTextButton() {
@@ -124,8 +131,45 @@ class _SoldInventoryScreenState extends State<SoldInventoryScreen> {
     context.read<SoldInventoryBloc>().add(ResetSoldInventoryState());
   }
 
-  void _onDeleteSoldItem(SoldItem soldItem) {
-    context.read<SoldInventoryBloc>().add(DeleteSoldItem(soldItem));
+  void _onDeleteSoldItem(String id) {
+    context.read<SoldInventoryBloc>().add(DeleteSoldItem(id));
+  }
+
+  Future<void> _onEditSoldItem(SoldItem soldItem) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        clipBehavior: Clip.antiAlias,
+        child: Scaffold(
+          appBar: AppBar(
+            automaticallyImplyLeading: false,
+            title: const Text('Edit sale'),
+            centerTitle: true,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(ctx),
+                tooltip: 'Close',
+              ),
+            ],
+          ),
+          body: Padding(
+            padding: const EdgeInsets.all(24),
+            child: SellItemFormular(
+              stockItem: soldItem.stockItem,
+              soldItem: soldItem,
+              onSubmitted: (updated) {
+                context.read<SoldInventoryBloc>().add(UpdateSoldItem(updated));
+                Navigator.pop(ctx);
+              },
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   // Shortens list by adding quantity of items with same id.

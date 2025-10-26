@@ -46,7 +46,7 @@ class AppDependencies {
       'item_category_table': '''
     CREATE TABLE item_category_table (
       id TEXT PRIMARY KEY,
-      title TEXT,
+      name TEXT,
       description TEXT,
       iconData INTEGER
     )
@@ -77,6 +77,7 @@ class AppDependencies {
       idSupplier TEXT,
       barcodeArticel TEXT,
       barcodeSupplier TEXT,
+      createdAt TEXT,
       quantity INTEGER
     )
   ''',
@@ -102,7 +103,7 @@ class AppDependencies {
       description TEXT,
       buyPrice REAL,
       sellPrice REAL,
-      idSoldItem TEXT,
+      idStockItem TEXT,
       category TEXT,
       imageList TEXT,
       idSupplier TEXT,
@@ -112,6 +113,7 @@ class AppDependencies {
       quantitySold INTEGER,
       sellPriceReal REAL,
       sellDate TEXT,
+      createdAt TEXT,
       customerId TEXT 
     )
     ''',

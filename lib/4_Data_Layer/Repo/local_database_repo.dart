@@ -14,7 +14,9 @@ class LocalDatabaseRepo<T> implements DatabaseRepository<T> {
   @override
   final T Function(Map<String, dynamic> json) fromMap;
 
+  ///
   LocalDatabaseRepo({required this.toMap, required this.fromMap});
+
   @override
   Future<void> init(dynamic stockDatabaseTable) async {
     if (_database == null) {
@@ -72,11 +74,21 @@ class LocalDatabaseRepo<T> implements DatabaseRepository<T> {
       whereArgs: [id],
     );
   }
-  //test
 
   @override
   Future<void> delete(String id) async {
-    await _database!.delete(_tableName, where: 'id = ?', whereArgs: [id]);
+    final data = await _database!.query(_tableName);
+    for (var element in (await data)) {
+      print(element);
+    }
+    final int deletedCount = await _database!.delete(
+      _tableName,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (deletedCount == 0) {
+      throw Exception('No record found to delete with id $id');
+    }
   }
 
   @override

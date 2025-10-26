@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:goiabeira/0_Core/Config/app_colors.dart';
-import 'package:goiabeira/0_Core/Config/app_text_style.dart';
 import 'package:goiabeira/1_UI_Layer/Widgets/General/custom_formatted_text_field.dart';
 
 class DescriptionInput extends StatelessWidget {
